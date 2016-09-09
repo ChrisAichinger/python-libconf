@@ -2,13 +2,13 @@ from setuptools import setup
 
 setup(
     name='libconf',
-    version='0.9.1',
+    version='0.9.2',
     description="A pure-Python libconfig reader with permissive license",
     long_description=open('README.rst').read(),
     author="Christian Aichinger",
     author_email="Greek0@gmx.net",
     url='https://github.com/Grk0/python-libconf',
-    download_url='https://github.com/Grk0/python-libconf/tarball/0.9.1',
+    download_url='https://github.com/Grk0/python-libconf/tarball/0.9.2',
     license="MIT",
     py_modules=['libconf'],
     keywords='libconfig configuration parser library',
