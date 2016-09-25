@@ -460,6 +460,58 @@ def loads(string, filename=None, includedir=''):
                 filename=filename,
                 includedir=includedir)
 
+def save_collection(cfg, indent = 0):
+    """Save a collection of attributes"""
+    res = ""
+    indent_spaces = ' ' * indent
+    for value in cfg:
+        if isinstance(value, dict):
+            res += '{}{{\n{}\n{}}}'.format(indent_spaces, save_dict(value, indent + 4), indent_spaces)
+        if isinstance(value, tuple):
+            res += '{}(\n{}\n{})'.format(indent_spaces, save_collection(value, indent + 4), indent_spaces)
+        if isinstance(value, list):
+            res += '{}[\n{}\n{}]'.format(indent_spaces, save_collection(value, indent + 4), indent_spaces)
+        elif isinstance(value, str):
+            res += '{}"{}"'.format(indent_spaces, value)
+        elif isinstance(value, int) or isinstance(value, float):
+            res += '{}{}'.format(indent_spaces, value)
+
+        res += ',\n'
+    res = res[:-2] if res else res
+    return res
+
+def save_dict(cfg, indent = 0):
+    """Save a dictionary of attributes"""
+    res = ""
+    indent_spaces = ' ' * indent
+    for key, value in cfg.items():
+        if isinstance(value, dict):
+            res += '{}{} : \n{}{{\n{}\n{}}}'.format(indent_spaces, key, indent_spaces, save_dict(value, indent + 4), indent_spaces)
+        if isinstance(value, tuple):
+            res += '{}{} : \n{}(\n{}\n{})'.format(indent_spaces, key, indent_spaces, save_collection(value, indent + 4), indent_spaces)
+        if isinstance(value, list):
+            res += '{}{} : \n{}[\n{}\n{}]'.format(indent_spaces, key, indent_spaces, save_collection(value, indent + 4), indent_spaces)
+        elif isinstance(value, str):
+            res += '{}{} = "{}"'.format(indent_spaces, key, value)
+        elif isinstance(value, int) or isinstance(value, float):
+            res += '{}{} = {}'.format(indent_spaces, key, value)
+
+        res += ';\n'
+    res = res[:-1] if res else res
+    return res
+
+def saves(cfg):
+    """
+    Serialise libconf into a string ready for saving
+    Params:
+        cfg(AttrDict) : Configuration object created by libconf.load()
+    """
+    # The root setting is a group
+    return save_dict(cfg, 0)
+
+def save(cfg, f):
+    """Save the cfg to ``f`` (a file-like object)"""
+    f.write(saves(cfg))
 
 def main():
     '''Open the libconfig file specified by sys.argv[1] and pretty-print it'''
