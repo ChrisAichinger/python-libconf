@@ -4,7 +4,7 @@ libconf
 
 libconf is a pure-Python reader for configuration files in `libconfig
 format`_, which is often used in C/C++ projects. It's interface is similar
-to the `json`_ module: the four main methods are ``load()``, ``loads()``.
+to the `json`_ module: the four main methods are ``load()``, ``loads()``,
 ``save()``, and ``saves()``.
 
 Example usage::
