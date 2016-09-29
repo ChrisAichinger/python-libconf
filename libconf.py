@@ -498,7 +498,7 @@ def save_dict(cfg, indent = 0):
             res += '{}{} = {}'.format(indent_spaces, key, value)
 
         res += ';\n'
-    res = res[:-1] if res else res
+    res = res[:-2] if res else res
     return res
 
 def saves(cfg):
