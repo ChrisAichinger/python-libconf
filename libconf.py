@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import absolute_import, division, print_function
-from builtins import str
+import builtins
 
 import sys
 import os
@@ -9,6 +9,15 @@ import codecs
 import io
 import re
 
+# Credits:
+# http://stackoverflow.com/questions/11301138/how-to-check-if-variable-is-string-with-python-2-and-3-compatibility
+try:
+    basestring  # attempt to evaluate basestring
+    def isstr(s):
+        return isinstance(s, basestring)
+except NameError:
+    def isstr(s):
+        return isinstance(s, str)
 
 ESCAPE_SEQUENCE_RE = re.compile(r'''
     ( \\x..            # 2-digit hex escapes
@@ -35,6 +44,9 @@ class ConfigParseError(RuntimeError):
     '''Exception class raised on errors reading the libconfig input'''
     pass
 
+class ConfigSerialiseError(RuntimeError):
+    '''Exception class raised on errors serialising the config object'''
+    pass
 
 class Token(object):
     '''Base class for all tokens produced by the libconf tokenizer'''
@@ -457,7 +469,7 @@ def loads(string, filename=None, includedir=''):
         'libconfig example'
     '''
 
-    return load(io.StringIO(string),
+    return load(io.StringIO(builtins.str(string)),
                 filename=filename,
                 includedir=includedir)
 
@@ -468,14 +480,17 @@ def save_collection(cfg, indent = 0):
     for value in cfg:
         if isinstance(value, dict):
             res += '{}{{\n{}\n{}}}'.format(indent_spaces, save_dict(value, indent + 4), indent_spaces)
-        if isinstance(value, tuple):
+        elif isinstance(value, tuple):
             res += '{}(\n{}\n{})'.format(indent_spaces, save_collection(value, indent + 4), indent_spaces)
-        if isinstance(value, list):
+        elif isinstance(value, list):
             res += '{}[\n{}\n{}]'.format(indent_spaces, save_collection(value, indent + 4), indent_spaces)
-        elif isinstance(value, str):
+        elif isstr(value):
             res += '{}"{}"'.format(indent_spaces, value)
         elif isinstance(value, int) or isinstance(value, float):
             res += '{}{}'.format(indent_spaces, value)
+        else:
+            raise ConfigSerialiseError("Unsupported config type")
+
 
         res += ',\n'
     res = res[:-2] if res else res
@@ -488,14 +503,16 @@ def save_dict(cfg, indent = 0):
     for key, value in cfg.items():
         if isinstance(value, dict):
             res += '{}{} : \n{}{{\n{}\n{}}}'.format(indent_spaces, key, indent_spaces, save_dict(value, indent + 4), indent_spaces)
-        if isinstance(value, tuple):
+        elif isinstance(value, tuple):
             res += '{}{} : \n{}(\n{}\n{})'.format(indent_spaces, key, indent_spaces, save_collection(value, indent + 4), indent_spaces)
-        if isinstance(value, list):
+        elif isinstance(value, list):
             res += '{}{} : \n{}[\n{}\n{}]'.format(indent_spaces, key, indent_spaces, save_collection(value, indent + 4), indent_spaces)
-        elif isinstance(value, str):
+        elif isstr(value):
             res += '{}{} = "{}"'.format(indent_spaces, key, value)
         elif isinstance(value, int) or isinstance(value, float):
             res += '{}{} = {}'.format(indent_spaces, key, value)
+        else:
+            raise ConfigSerialiseError("Unsupported config type")
 
         res += ';\n'
     res = res[:-2] if res else res
@@ -508,7 +525,7 @@ def saves(cfg):
         cfg(AttrDict) : Configuration object created by libconf.load()
     """
     # The root setting is a group
-    return str(save_dict(cfg, 0))
+    return save_dict(cfg, 0)
 
 def save(cfg, f):
     """Save the cfg to ``f`` (a file-like object)"""

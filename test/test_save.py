@@ -23,6 +23,15 @@ def test_save_collection():
     c_saved = libconf.save_collection(c)
     assert c_saved == '[\n    1,\n    2\n],\n3'
 
+def test_save_string():
+    c = { 'name' : 'name'}
+    c_saved = libconf.save_dict(c)
+    assert c_saved == 'name = "name"'
+
+    c = { 'name' : 'x\01\""name"\"'}
+    c_saved = libconf.save_dict(c)
+    assert c_saved == 'name = "x\01\""name"\""'
+
 def test_saves():
     example_file = os.path.join(CURDIR, 'test_e2e.cfg')
     with io.open(example_file, 'r', encoding='utf-8') as f:
