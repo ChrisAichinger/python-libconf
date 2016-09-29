@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import absolute_import, division, print_function
+from builtins import str
 
 import sys
 import os
@@ -507,7 +508,7 @@ def saves(cfg):
         cfg(AttrDict) : Configuration object created by libconf.load()
     """
     # The root setting is a group
-    return save_dict(cfg, 0)
+    return str(save_dict(cfg, 0))
 
 def save(cfg, f):
     """Save the cfg to ``f`` (a file-like object)"""
