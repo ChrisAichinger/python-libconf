@@ -9,6 +9,11 @@ import codecs
 import io
 import re
 
+# Any number greater than this should have L suffix
+SMALL_INT_MAX = pow(2, 31) - 1
+# Any number less than this should have L suffix
+SMALL_INT_MIN = -pow(2, 31)
+
 # Credits:
 # http://stackoverflow.com/questions/11301138/how-to-check-if-variable-is-string-with-python-2-and-3-compatibility
 try:
@@ -24,6 +29,9 @@ ESCAPE_SEQUENCE_RE = re.compile(r'''
     | \\[\\'"abfnrtv]  # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
+def config_int_to_str(i):
+    '''Return str representation of int'''
+    return str(i) if i <= SMALL_INT_MAX and i >= SMALL_INT_MIN else str(i) + 'L';
 
 def decode_escapes(s):
     '''Unescape libconfig string literals'''
@@ -473,43 +481,46 @@ def loads(string, filename=None, includedir=''):
                 filename=filename,
                 includedir=includedir)
 
-def save_collection(cfg, indent = 0):
+def dump_collection(cfg, indent = 0):
     """Save a collection of attributes"""
     res = ""
     indent_spaces = ' ' * indent
     for value in cfg:
         if isinstance(value, dict):
-            res += '{}{{\n{}\n{}}}'.format(indent_spaces, save_dict(value, indent + 4), indent_spaces)
+            res += '{}{{\n{}\n{}}}'.format(indent_spaces, dump_dict(value, indent + 4), indent_spaces)
         elif isinstance(value, tuple):
-            res += '{}(\n{}\n{})'.format(indent_spaces, save_collection(value, indent + 4), indent_spaces)
+            res += '{}(\n{}\n{})'.format(indent_spaces, dump_collection(value, indent + 4), indent_spaces)
         elif isinstance(value, list):
-            res += '{}[\n{}\n{}]'.format(indent_spaces, save_collection(value, indent + 4), indent_spaces)
+            res += '{}[\n{}\n{}]'.format(indent_spaces, dump_collection(value, indent + 4), indent_spaces)
         elif isstr(value):
             res += '{}"{}"'.format(indent_spaces, value)
-        elif isinstance(value, int) or isinstance(value, float):
+        elif isinstance(value, int):
+            res += '{}{}'.format(indent_spaces, config_int_to_str(value))
+        elif isinstance(value, float):
             res += '{}{}'.format(indent_spaces, value)
         else:
             raise ConfigSerialiseError("Unsupported config type")
-
 
         res += ',\n'
     res = res[:-2] if res else res
     return res
 
-def save_dict(cfg, indent = 0):
+def dump_dict(cfg, indent = 0):
     """Save a dictionary of attributes"""
     res = ""
     indent_spaces = ' ' * indent
     for key, value in cfg.items():
         if isinstance(value, dict):
-            res += '{}{} : \n{}{{\n{}\n{}}}'.format(indent_spaces, key, indent_spaces, save_dict(value, indent + 4), indent_spaces)
+            res += '{}{} : \n{}{{\n{}\n{}}}'.format(indent_spaces, key, indent_spaces, dump_dict(value, indent + 4), indent_spaces)
         elif isinstance(value, tuple):
-            res += '{}{} : \n{}(\n{}\n{})'.format(indent_spaces, key, indent_spaces, save_collection(value, indent + 4), indent_spaces)
+            res += '{}{} : \n{}(\n{}\n{})'.format(indent_spaces, key, indent_spaces, dump_collection(value, indent + 4), indent_spaces)
         elif isinstance(value, list):
-            res += '{}{} : \n{}[\n{}\n{}]'.format(indent_spaces, key, indent_spaces, save_collection(value, indent + 4), indent_spaces)
+            res += '{}{} : \n{}[\n{}\n{}]'.format(indent_spaces, key, indent_spaces, dump_collection(value, indent + 4), indent_spaces)
         elif isstr(value):
             res += '{}{} = "{}"'.format(indent_spaces, key, value)
-        elif isinstance(value, int) or isinstance(value, float):
+        elif isinstance(value, int):
+            res += '{}{} = {}'.format(indent_spaces, key, config_int_to_str(value))
+        elif isinstance(value, float):
             res += '{}{} = {}'.format(indent_spaces, key, value)
         else:
             raise ConfigSerialiseError("Unsupported config type")
@@ -518,18 +529,18 @@ def save_dict(cfg, indent = 0):
     res = res[:-2] if res else res
     return res
 
-def saves(cfg):
+def dumps(cfg):
     """
     Serialise libconf into a string ready for saving
     Params:
         cfg(AttrDict) : Configuration object created by libconf.load()
     """
     # The root setting is a group
-    return save_dict(cfg, 0)
+    return dump_dict(cfg, 0)
 
-def save(cfg, f):
+def dump(cfg, f):
     """Save the cfg to ``f`` (a file-like object)"""
-    f.write(saves(cfg))
+    f.write(dumps(cfg))
 
 def main():
     '''Open the libconfig file specified by sys.argv[1] and pretty-print it'''
