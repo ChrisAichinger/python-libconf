@@ -18,9 +18,12 @@ SMALL_INT_MIN = -pow(2, 31)
 # http://stackoverflow.com/questions/11301138/how-to-check-if-variable-is-string-with-python-2-and-3-compatibility
 try:
     basestring  # attempt to evaluate basestring
+
     def isstr(s):
         return isinstance(s, basestring)
+
 except NameError:
+
     def isstr(s):
         return isinstance(s, str)
 
@@ -29,9 +32,11 @@ ESCAPE_SEQUENCE_RE = re.compile(r'''
     | \\[\\'"abfnrtv]  # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
+
 def config_int_to_str(i):
     '''Return str representation of int'''
-    return str(i) if i <= SMALL_INT_MAX and i >= SMALL_INT_MIN else str(i) + 'L';
+    return str(i) + ('' if i <= SMALL_INT_MAX and i >= SMALL_INT_MIN else 'L')
+
 
 def decode_escapes(s):
     '''Unescape libconfig string literals'''
@@ -52,9 +57,11 @@ class ConfigParseError(RuntimeError):
     '''Exception class raised on errors reading the libconfig input'''
     pass
 
+
 class ConfigSerialiseError(RuntimeError):
     '''Exception class raised on errors serialising the config object'''
     pass
+
 
 class Token(object):
     '''Base class for all tokens produced by the libconf tokenizer'''
@@ -481,53 +488,69 @@ def loads(string, filename=None, includedir=''):
                 filename=filename,
                 includedir=includedir)
 
-def dump_collection(cfg, indent = 0):
+
+def dump_collection(cfg, f, indent=0):
     """Save a collection of attributes"""
-    res = ""
-    indent_spaces = ' ' * indent
-    for value in cfg:
+    spaces = ' ' * indent
+    for i in range(len(cfg)):
+        value = cfg[i]
+
         if isinstance(value, dict):
-            res += '{}{{\n{}\n{}}}'.format(indent_spaces, dump_dict(value, indent + 4), indent_spaces)
+            f.write(u'{}{{\n'.format(spaces))
+            dump_dict(value, f, indent + 4)
+            f.write(u'\n}}{}'.format(spaces))
         elif isinstance(value, tuple):
-            res += '{}(\n{}\n{})'.format(indent_spaces, dump_collection(value, indent + 4), indent_spaces)
+            f.write(u'{}(\n'.format(spaces))
+            dump_collection(value, f, indent + 4)
+            f.write(u'\n{})'.format(spaces))
         elif isinstance(value, list):
-            res += '{}[\n{}\n{}]'.format(indent_spaces, dump_collection(value, indent + 4), indent_spaces)
+            f.write(u'{}[\n'.format(spaces))
+            dump_collection(value, f, indent + 4)
+            f.write(u'\n{}]'.format(spaces))
         elif isstr(value):
-            res += '{}"{}"'.format(indent_spaces, value)
+            f.write(u'{}"{}"'.format(spaces, value))
         elif isinstance(value, int):
-            res += '{}{}'.format(indent_spaces, config_int_to_str(value))
+            f.write(u'{}{}'.format(spaces, config_int_to_str(value)))
         elif isinstance(value, float):
-            res += '{}{}'.format(indent_spaces, value)
+            f.write(u'{}{}'.format(spaces, value))
         else:
             raise ConfigSerialiseError("Unsupported config type")
 
-        res += ',\n'
-    res = res[:-2] if res else res
-    return res
+        if i < len(cfg) - 1:
+            f.write(u',\n')
 
-def dump_dict(cfg, indent = 0):
+
+def dump_dict(cfg, f, indent=0):
     """Save a dictionary of attributes"""
-    res = ""
-    indent_spaces = ' ' * indent
-    for key, value in cfg.items():
+    spaces = ' ' * indent
+    for i in range(len(list(cfg))):
+        key = list(cfg)[i]
+        value = cfg[key]
+
         if isinstance(value, dict):
-            res += '{}{} : \n{}{{\n{}\n{}}}'.format(indent_spaces, key, indent_spaces, dump_dict(value, indent + 4), indent_spaces)
+            f.write(u'{}{} : \n{}{{\n'.format(spaces, key, spaces))
+            dump_dict(value, f, indent + 4)
+            f.write(u'\n{}}}'.format(spaces))
         elif isinstance(value, tuple):
-            res += '{}{} : \n{}(\n{}\n{})'.format(indent_spaces, key, indent_spaces, dump_collection(value, indent + 4), indent_spaces)
+            f.write(u'{}{} : \n{}(\n'.format(spaces, key, spaces))
+            dump_collection(value, f, indent + 4)
+            f.write(u'\n{})'.format(spaces))
         elif isinstance(value, list):
-            res += '{}{} : \n{}[\n{}\n{}]'.format(indent_spaces, key, indent_spaces, dump_collection(value, indent + 4), indent_spaces)
+            f.write(u'{}{} : \n{}[\n'.format(spaces, key, spaces))
+            dump_collection(value, f, indent + 4)
+            f.write(u'\n{}]'.format(spaces))
         elif isstr(value):
-            res += '{}{} = "{}"'.format(indent_spaces, key, value)
+            f.write(u'{}{} = "{}"'.format(spaces, key, value))
         elif isinstance(value, int):
-            res += '{}{} = {}'.format(indent_spaces, key, config_int_to_str(value))
+            f.write(u'{}{} = {}'.format(spaces, key, config_int_to_str(value)))
         elif isinstance(value, float):
-            res += '{}{} = {}'.format(indent_spaces, key, value)
+            f.write(u'{}{} = {}'.format(spaces, key, value))
         else:
             raise ConfigSerialiseError("Unsupported config type")
 
-        res += ';\n'
-    res = res[:-2] if res else res
-    return res
+        if i < len(cfg) - 1:
+            f.write(u';\n')
+
 
 def dumps(cfg):
     """
@@ -536,11 +559,15 @@ def dumps(cfg):
         cfg(AttrDict) : Configuration object created by libconf.load()
     """
     # The root setting is a group
-    return dump_dict(cfg, 0)
+    str_file = io.StringIO()
+    dump(cfg, str_file)
+    return str_file.getvalue()
+
 
 def dump(cfg, f):
     """Save the cfg to ``f`` (a file-like object)"""
-    f.write(dumps(cfg))
+    dump_dict(cfg, f, 0)
+
 
 def main():
     '''Open the libconfig file specified by sys.argv[1] and pretty-print it'''
