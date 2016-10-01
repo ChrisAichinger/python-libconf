@@ -8,5 +8,6 @@ env:
  - TOX_ENV=flake8
 install:
  - pip install tox
+ - pip install future
 script:
  - tox -e $TOX_ENV
