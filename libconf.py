@@ -97,7 +97,7 @@ class Tokenizer:
 
     token_map = [
         (FltToken,  'float',     r'([-+]?([0-9]+)?\.[0-9]*([eE][-+]?[0-9]+)?)|'
-                                 r'([-+]([0-9]+)(\.[0-9]*)?[eE][-+]?[0-9]+)'),
+                                 r'([-+]?([0-9]+)(\.[0-9]*)?[eE][-+]?[0-9]+)'),
         (IntToken,  'hex64',     r'0[Xx][0-9A-Fa-f]+(L(L)?)'),
         (IntToken,  'hex',       r'0[Xx][0-9A-Fa-f]+'),
         (IntToken,  'integer64', r'[-+]?[0-9]+L(L)?'),

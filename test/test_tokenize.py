@@ -12,15 +12,17 @@ def test_float():
                                      "2.E3 .5E6 0.75E9 1.0E1 "
                                      "2.E+3 .5E+6 0.75E+9 1.0E+1 "
                                      "2.E-3 .5E-6 0.75E-9 1.0E-1 "
+                                     "2E1 -2e1 +2e1 5e-1 "
                                     ))
 
-    assert [t.type for t in tokens] == ['float'] * 24
+    assert [t.type for t in tokens] == ['float'] * 28
     assert [t.value for t in tokens][0:4] == [2.0, 0.5, 0.75, 10.0]
     assert [t.value for t in tokens][4:8] == [2.0, 0.5, 0.75, 10.0]
     assert [t.value for t in tokens][8:12] == [-2.0, -0.5, -0.75, -10.0]
     assert [t.value for t in tokens][12:16] == [2E3, .5E6, .75E9, 10]
     assert [t.value for t in tokens][16:20] == [2E3, .5E6, .75E9, 10]
     assert [t.value for t in tokens][20:24] == [2E-3, .5E-6, .75E-9, 0.1]
+    assert [t.value for t in tokens][24:28] == [20.0, -20.0, 20.0, 0.5]
 
 def test_hex64():
     tokenizer = libconf.Tokenizer("<memory>")
