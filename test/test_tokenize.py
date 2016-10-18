@@ -5,7 +5,7 @@ import libconf
 
 def test_float():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize(" 2.  .5  0.75  1.0E1 "
                                      "+2. +.5 +0.75 +1.0E1 "
                                      "-2. -.5 -0.75 -1.0E1 "
@@ -24,7 +24,7 @@ def test_float():
 
 def test_hex64():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("0x13AL 0XbcdL 0xefLL 0X456789ABLL"))
 
     assert [t.type for t in tokens] == ['hex64'] * 4
@@ -32,7 +32,7 @@ def test_hex64():
 
 def test_hex():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("0x13A 0Xbcd 0xef 0X456789AB"))
 
     assert [t.type for t in tokens] == ['hex'] * 4
@@ -40,7 +40,7 @@ def test_hex():
 
 def test_integer64():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("10L +30L -15000000000LL"))
 
     assert [t.type for t in tokens] == ['integer64'] * 3
@@ -48,7 +48,7 @@ def test_integer64():
 
 def test_integer():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("10 +30 -15000000000"))
 
     assert [t.type for t in tokens] == ['integer'] * 3
@@ -56,7 +56,7 @@ def test_integer():
 
 def test_boolean():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("true TRUE TrUe false FALSE FaLsE"))
 
     assert [t.type for t in tokens] == ['boolean'] * 6
@@ -64,7 +64,7 @@ def test_boolean():
 
 def test_string():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize(
         r'''"abc" "ab\"cd" "" "\x20\\\f\n\r\t"'''))
 
@@ -73,7 +73,7 @@ def test_string():
 
 def test_name():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("ident IdenT I I32A"))
 
     assert [t.type for t in tokens] == ['name'] * 4
@@ -81,14 +81,14 @@ def test_name():
 
 def test_special():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("}]){[(=:,;"))
 
     assert [t.type for t in tokens] == list("}]){[(=:,;")
 
 def test_location():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     tokens = list(tokenizer.tokenize("\n    0   1\n        2"))
 
     assert [t.type for t in tokens] == ['integer'] * 3
@@ -96,7 +96,7 @@ def test_location():
 
 def test_invalid_token():
     tokenizer = libconf.Tokenizer("<memory>")
-    
+
     with pytest.raises(libconf.ConfigParseError) as exc_info:
         list(tokenizer.tokenize("\n\n        `xvz"))
 
