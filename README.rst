@@ -2,10 +2,10 @@
 libconf
 =======
 
-libconf is a pure-Python reader for configuration files in `libconfig
-format`_, which is often used in C/C++ projects. It's interface is similar
-to the `json`_ module: the four main methods are ``load()``, ``loads()``,
-``save()``, and ``saves()``.
+libconf is a pure-Python reader/writer for configuration files in `libconfig
+format`_, which is often used in C/C++ projects. It's interface is similar to
+the `json`_ module: the four main methods are ``load()``, ``loads()``,
+``dump()``, and ``dumps()``.
 
 Example usage::
 
@@ -26,8 +26,14 @@ Example usage::
     'libconfig example'
     >>> config.window.title
     'libconfig example'
-    >>> with open('modified.cfg', 'w') as f:
-    ...    libconf.save(config)
+
+    >>> print(libconf.dumps({'size': [10, 15], 'flag': True}))
+    flag = True;
+    size =
+    [
+        10,
+        15
+    ];
 
 The data can be accessed either via indexing (``['title']``) or via attribute
 access ``.title``.

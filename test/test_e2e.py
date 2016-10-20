@@ -7,8 +7,12 @@ import libconf
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
+
+# Tests for load() and loads()
+##############################
+
 def test_example_config():
-    example_file = os.path.join(CURDIR, 'test_e2e.cfg') 
+    example_file = os.path.join(CURDIR, 'test_e2e.cfg')
     with io.open(example_file, 'r', encoding='utf-8') as f:
         c = libconf.load(f, includedir=CURDIR)
 
@@ -38,7 +42,32 @@ def test_nonexisting_include_raises():
         libconf.loads(input)
 
 def test_circular_include_raises():
-    circular_file = os.path.join(CURDIR, 'circular1.cfg') 
+    circular_file = os.path.join(CURDIR, 'circular1.cfg')
     with io.open(circular_file, 'r', encoding='utf-8') as f:
         with pytest.raises(libconf.ConfigParseError):
             libconf.load(f, includedir=CURDIR)
+
+
+# Tests for dump() and dumps()
+##############################
+
+def test_dumps():
+    example_file = os.path.join(CURDIR, 'test_e2e.cfg')
+    with io.open(example_file, 'r', encoding='utf-8') as f:
+        c = libconf.load(f, includedir=CURDIR)
+
+    c_dumped = libconf.loads(libconf.dumps(c))
+
+    assert c == c_dumped
+
+def test_dump():
+    example_file = os.path.join(CURDIR, 'test_e2e.cfg')
+    with io.open(example_file, 'r', encoding='utf-8') as f:
+        c = libconf.load(f, includedir=CURDIR)
+
+    with io.StringIO() as f:
+        libconf.dump(c, f)
+        f.seek(0)
+        c_dumped = libconf.load(f, includedir=CURDIR)
+
+    assert c == c_dumped
