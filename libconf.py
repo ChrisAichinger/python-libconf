@@ -12,13 +12,17 @@ import re
 # See http://stackoverflow.com/questions/11301138
 try:
     basestring  # attempt to evaluate basestring
+
     def isstr(s):
         return isinstance(s, basestring)
+
     def isint(i):
         return isinstance(i, (int, long))
 except NameError:
+
     def isstr(s):
         return isinstance(s, str)
+
     def isint(i):
         return isinstance(i, int)
 
@@ -509,8 +513,7 @@ def dump_string(s):
           .replace('\f', r'\f')
           .replace('\n', r'\n')
           .replace('\r', r'\r')
-          .replace('\t', r'\t')
-        )
+          .replace('\t', r'\t'))
     s = UNPRINTABLE_CHARACTER_RE.sub(
             lambda m: r'\x{:02x}'.format(ord(m.group(0))),
             s)
@@ -554,12 +557,12 @@ def dump_value(key, value, f, indent=0):
         f.write(u'{}{}{}'.format(spaces, key_prefix, value))
     else:
         raise ConfigSerializeError("Can not serialize object %r of type %s" %
-                (value, type(value)))
+                                   (value, type(value)))
 
 
 def dump_collection(cfg, f, indent=0):
     '''Save a collection of attributes'''
-    spaces = ' ' * indent
+
     for i, value in enumerate(cfg):
         dump_value(None, value, f, indent)
         if i < len(cfg) - 1:
@@ -568,11 +571,11 @@ def dump_collection(cfg, f, indent=0):
 
 def dump_dict(cfg, f, indent=0):
     '''Save a dictionary of attributes'''
-    spaces = ' ' * indent
+
     for key in cfg:
         if not isstr(key):
             raise ConfigSerializeError("Dict keys must be strings: %r" %
-                (key,))
+                                       (key,))
         dump_value(key, cfg[key], f, indent)
         f.write(u';\n')
 
