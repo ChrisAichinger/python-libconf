@@ -8,12 +8,34 @@ import codecs
 import io
 import re
 
+# Define an isstr() and isint() that work on both Python2 and Python3.
+# See http://stackoverflow.com/questions/11301138
+try:
+    basestring  # attempt to evaluate basestring
+    def isstr(s):
+        return isinstance(s, basestring)
+    def isint(i):
+        return isinstance(i, (int, long))
+except NameError:
+    def isstr(s):
+        return isinstance(s, str)
+    def isint(i):
+        return isinstance(i, int)
+
+# Bounds to determine when an "L" suffix should be used during dump().
+SMALL_INT_MIN = -2**31
+SMALL_INT_MAX = 2**31 - 1
 
 ESCAPE_SEQUENCE_RE = re.compile(r'''
     ( \\x..            # 2-digit hex escapes
     | \\[\\'"abfnrtv]  # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
+UNPRINTABLE_CHARACTER_RE = re.compile(r'[\x00-\x1F]|[\x7F-\xFF]')
+
+
+# load() logic
+##############
 
 def decode_escapes(s):
     '''Unescape libconfig string literals'''
@@ -32,6 +54,11 @@ class AttrDict(dict):
 
 class ConfigParseError(RuntimeError):
     '''Exception class raised on errors reading the libconfig input'''
+    pass
+
+
+class ConfigSerializeError(TypeError):
+    '''Exception class raised on errors serializing a config object'''
     pass
 
 
@@ -461,10 +488,131 @@ def loads(string, filename=None, includedir=''):
                 includedir=includedir)
 
 
+# dump() logic
+##############
+
+def dump_int(i):
+    '''Stringize ``i``, append 'L' if ``i`` is exceeds the 32-bit int range'''
+    return str(i) + ('' if SMALL_INT_MIN <= i <= SMALL_INT_MAX else 'L')
+
+
+def dump_string(s):
+    '''Stringize ``s``, adding double quotes and escaping as necessary
+
+    Backslash escape backslashes, double quotes, ``\f``, ``\n``, ``\r``, and
+    ``\t``. Escape all remaining unprintable characters in ``\xFF``-style.
+    The returned string will be surrounded by double quotes.
+    '''
+
+    s = (s.replace('\\', '\\\\')
+          .replace('"', '\\"')
+          .replace('\f', r'\f')
+          .replace('\n', r'\n')
+          .replace('\r', r'\r')
+          .replace('\t', r'\t')
+        )
+    s = UNPRINTABLE_CHARACTER_RE.sub(
+            lambda m: r'\x{:02x}'.format(ord(m.group(0))),
+            s)
+    return '"{}"'.format(s)
+
+
+def dump_value(key, value, f, indent=0):
+    '''Save a value of any libconfig type
+
+    This function serializes takes ``key`` and ``value`` and serializes them
+    into ``f``. If ``key`` is ``None``, a list-style output is produced.
+    Otherwise, output has ``key = value`` format.
+    '''
+
+    spaces = ' ' * indent
+
+    if key is None:
+        key_prefix = ''
+        key_prefix_nl = ''
+    else:
+        key_prefix = key + ' = '
+        key_prefix_nl = key + ' =\n' + spaces
+
+    if isinstance(value, dict):
+        f.write(u'{}{}{{\n'.format(spaces, key_prefix_nl))
+        dump_dict(value, f, indent + 4)
+        f.write(u'{}}}'.format(spaces))
+    elif isinstance(value, tuple):
+        f.write(u'{}{}(\n'.format(spaces, key_prefix_nl))
+        dump_collection(value, f, indent + 4)
+        f.write(u'\n{})'.format(spaces))
+    elif isinstance(value, list):
+        f.write(u'{}{}[\n'.format(spaces, key_prefix_nl))
+        dump_collection(value, f, indent + 4)
+        f.write(u'\n{}]'.format(spaces))
+    elif isstr(value):
+        f.write(u'{}{}{}'.format(spaces, key_prefix, dump_string(value)))
+    elif isint(value):
+        f.write(u'{}{}{}'.format(spaces, key_prefix, dump_int(value)))
+    elif isinstance(value, float):
+        f.write(u'{}{}{}'.format(spaces, key_prefix, value))
+    else:
+        raise ConfigSerializeError("Can not serialize object %r of type %s" %
+                (value, type(value)))
+
+
+def dump_collection(cfg, f, indent=0):
+    '''Save a collection of attributes'''
+    spaces = ' ' * indent
+    for i, value in enumerate(cfg):
+        dump_value(None, value, f, indent)
+        if i < len(cfg) - 1:
+            f.write(u',\n')
+
+
+def dump_dict(cfg, f, indent=0):
+    '''Save a dictionary of attributes'''
+    spaces = ' ' * indent
+    for key in cfg:
+        if not isstr(key):
+            raise ConfigSerializeError("Dict keys must be strings: %r" %
+                (key,))
+        dump_value(key, cfg[key], f, indent)
+        f.write(u';\n')
+
+
+def dumps(cfg):
+    '''Serialize ``cfg`` into a libconfig-formatted ``str``
+
+    ``cfg`` must be a ``dict`` with ``str`` keys and libconf-supported values
+    (numbers, strings, booleans, possibly nested dicts, lists, and tuples).
+
+    Returns the formatted string.
+    '''
+
+    str_file = io.StringIO()
+    dump(cfg, str_file)
+    return str_file.getvalue()
+
+
+def dump(cfg, f):
+    '''Serialize ``cfg`` as a libconfig-formatted stream into ``f``
+
+    ``cfg`` must be a ``dict`` with ``str`` keys and libconf-supported values
+    (numbers, strings, booleans, possibly nested dicts, lists, and tuples).
+
+    ``f`` must be a ``file``-like object with a ``write()`` method.
+    '''
+
+    if not isinstance(cfg, dict):
+        raise ConfigSerializeError(
+                'dump() requires a dict as input, not %r of type %r' %
+                (cfg, type(cfg)))
+
+    dump_dict(cfg, f, 0)
+
+
+# main(): small example of how to use libconf
+#############################################
+
 def main():
     '''Open the libconfig file specified by sys.argv[1] and pretty-print it'''
-    import pprint
-
     global output
     if len(sys.argv[1:]) == 1:
         with io.open(sys.argv[1], 'r', encoding='utf-8') as f:
@@ -472,7 +620,7 @@ def main():
     else:
         output = load(sys.stdin)
 
-    pprint.pprint(output)
+    dump(output, sys.stdout)
 
 
 if __name__ == '__main__':
