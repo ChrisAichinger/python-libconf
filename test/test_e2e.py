@@ -12,6 +12,10 @@ CURDIR = os.path.abspath(os.path.dirname(__file__))
 # Tests for load() and loads()
 ##############################
 
+def test_loads_maintains_dict_order():
+    config = libconf.loads(u'''l: 1; i: 5; b: 3; c: 1; o: 9; n: 0; f: 7;''')
+    assert ''.join(config.keys()) == 'libconf'
+
 def test_example_config():
     example_file = os.path.join(CURDIR, 'test_e2e.cfg')
     with io.open(example_file, 'r', encoding='utf-8') as f:
@@ -110,3 +114,10 @@ def test_dump_special_characters_roundtrip():
     d = {'a': ({'b': [u"\x00 \n \x7f abc \xff \u2603"]},)}
     d2 = libconf.loads(libconf.dumps(d))
     assert d == d2
+
+def test_roundtrip_preserves_config_entry_order():
+    config = libconf.loads(u'''l: 1; i: 5; b: 3; c: 1; o: 9; n: 0; f: 7;''')
+    dumped = libconf.dumps(config)
+    reloaded = libconf.loads(dumped)
+
+    assert ''.join(reloaded.keys()) == 'libconf'

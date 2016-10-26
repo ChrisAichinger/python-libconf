@@ -5,6 +5,7 @@ from __future__ import absolute_import, division, print_function
 import sys
 import os
 import codecs
+import collections
 import io
 import re
 
@@ -49,11 +50,18 @@ def decode_escapes(s):
     return ESCAPE_SEQUENCE_RE.sub(decode_match, s)
 
 
-class AttrDict(dict):
-    '''Dict subclass giving access to string keys via attribute access'''
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
+class AttrDict(collections.OrderedDict):
+    '''OrderedDict subclass giving access to string keys via attribute access
+
+    This class derives from collections.OrderedDict. Thus, the original
+    order of the config entries in the input stream is maintained.
+    '''
+
+    def __getattr__(self, attr):
+        if attr == '_OrderedDict__root':
+            # Work around Python2's OrderedDict weirdness.
+            raise AttributeError("AttrDict has no attribute %r" % attr)
+        return self.__getitem__(attr)
 
 
 class ConfigParseError(RuntimeError):
@@ -336,8 +344,6 @@ class Parser:
                 return result
 
             result[s[0]] = s[1]
-
-        return result
 
     def setting(self):
         name = self.tokens.accept('name')
