@@ -38,6 +38,22 @@ Example usage::
 The data can be accessed either via indexing (``['title']``) or via attribute
 access ``.title``.
 
+Character encoding and escape sequences
+---------------------------------------
+
+The recommended way to use libconf is with Unicode objects (``unicode`` on
+Python2, ``str`` on Python3). Input strings or streams for ``load()`` and
+``loads()`` should be Unicode, as should be all strings contained in data
+structures passed to ``dump()`` and ``dumps()``.
+
+In ``load()`` and ``loads()``, escape sequences (such as ``\n``, ``\r``,
+``\t``, or ``\xNN``) are decoded. Hex escapes (``\xNN``) are mapped to Unicode
+characters U+0000 through U+00FF. All other characters are passed though as-is.
+
+In ``dump()`` and ``dumps()``, unprintable characters below U+0080 are escaped
+as ``\n``, ``\r``, ``\t``, ``\f``, or ``\xNN`` sequences. Characters U+0080
+and above are passed through as-is.
+
 Comparison to other Python libconfig libraries
 ----------------------------------------------
 

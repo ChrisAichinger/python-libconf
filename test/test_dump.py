@@ -4,6 +4,9 @@ import pytest
 import libconf
 
 
+# Helper functions
+##################
+
 def dump_value(key, value, **kwargs):
     str_file = io.StringIO()
     libconf.dump_value(key, value, str_file, **kwargs)
@@ -18,6 +21,10 @@ def dump_dict(c, **kwargs):
     str_file = io.StringIO()
     libconf.dump_dict(c, str_file, **kwargs)
     return str_file.getvalue()
+
+
+# Actual tests
+##############
 
 def test_dump_collection():
     c = [1, 2, 3]
@@ -74,9 +81,19 @@ def test_dump_string_escapes_common_escape_characters():
     assert c_dumped == r'"\f \n \r \t"'
 
 def test_dump_string_escapes_unprintable_characters():
-    s = '\x00 \x1f \x7f \x9d \xff'
+    s = '\x00 \x1f \x7f'
     c_dumped = libconf.dump_string(s)
-    assert c_dumped == r'"\x00 \x1f \x7f \x9d \xff"'
+    assert c_dumped == r'"\x00 \x1f \x7f"'
+
+def test_dump_string_keeps_8bit_chars_intact():
+    s = '\x80 \x9d \xff'
+    c_dumped = libconf.dump_string(s)
+    assert c_dumped == '"\x80 \x9d \xff"'
+
+def test_dump_string_handles_unicode_strings():
+    s = u'\u2603'
+    c_dumped = libconf.dump_string(s)
+    assert c_dumped == u'"\u2603"'
 
 def test_dump_boolean():
     c = (True, False)

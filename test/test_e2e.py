@@ -1,5 +1,6 @@
 import os
 import io
+import textwrap
 import pytest
 
 import libconf
@@ -47,11 +48,44 @@ def test_circular_include_raises():
         with pytest.raises(libconf.ConfigParseError):
             libconf.load(f, includedir=CURDIR)
 
+def test_loads_of_bytes_throws():
+    with pytest.raises(TypeError) as excinfo:
+        libconf.loads(b'')
+
+    assert 'libconf.loads' in str(excinfo.value)
+
+def test_load_of_BytesIO_throws():
+    with pytest.raises(TypeError) as excinfo:
+        libconf.load(io.BytesIO(b'a: "37";'))
+
+    assert 'libconf.load' in str(excinfo.value)
+
 
 # Tests for dump() and dumps()
 ##############################
 
-def test_dumps():
+def test_dump_special_characters():
+    d = {'a': ({'b': [u"\x00 \n \x7f abc \xff \u2603"]},)}
+    s = libconf.dumps(d)
+
+    expected = textwrap.dedent(u'''\
+        a =
+        (
+            {
+                b =
+                [
+                    "\\x00 \\n \\x7f abc \xff \u2603"
+                ];
+            }
+        );
+        ''')
+    assert s == expected
+
+
+# Tests for dump-load round trips
+#################################
+
+def test_dumps_roundtrip():
     example_file = os.path.join(CURDIR, 'test_e2e.cfg')
     with io.open(example_file, 'r', encoding='utf-8') as f:
         c = libconf.load(f, includedir=CURDIR)
@@ -60,7 +94,7 @@ def test_dumps():
 
     assert c == c_dumped
 
-def test_dump():
+def test_dump_roundtrip():
     example_file = os.path.join(CURDIR, 'test_e2e.cfg')
     with io.open(example_file, 'r', encoding='utf-8') as f:
         c = libconf.load(f, includedir=CURDIR)
@@ -71,3 +105,8 @@ def test_dump():
         c_dumped = libconf.load(f, includedir=CURDIR)
 
     assert c == c_dumped
+
+def test_dump_special_characters_roundtrip():
+    d = {'a': ({'b': [u"\x00 \n \x7f abc \xff \u2603"]},)}
+    d2 = libconf.loads(libconf.dumps(d))
+    assert d == d2

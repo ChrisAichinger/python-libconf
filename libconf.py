@@ -35,7 +35,7 @@ ESCAPE_SEQUENCE_RE = re.compile(r'''
     | \\[\\'"abfnrtv]  # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
-UNPRINTABLE_CHARACTER_RE = re.compile(r'[\x00-\x1F]|[\x7F-\xFF]')
+UNPRINTABLE_CHARACTER_RE = re.compile(r'[\x00-\x1F\x7F]')
 
 
 # load() logic
@@ -466,6 +466,9 @@ def load(f, filename=None, includedir=''):
         'libconfig example'
     '''
 
+    if isinstance(f.read(0), bytes):
+        raise TypeError("libconf.load() input file must by unicode")
+
     tokenstream = TokenStream.from_file(f,
                                         filename=filename,
                                         includedir=includedir)
@@ -487,9 +490,12 @@ def loads(string, filename=None, includedir=''):
         'libconfig example'
     '''
 
-    return load(io.StringIO(string),
-                filename=filename,
-                includedir=includedir)
+    try:
+        f = io.StringIO(string)
+    except TypeError:
+        raise TypeError("libconf.loads() input string must by unicode")
+
+    return load(f, filename=filename, includedir=includedir)
 
 
 # dump() logic
@@ -517,7 +523,7 @@ def dump_string(s):
     s = UNPRINTABLE_CHARACTER_RE.sub(
             lambda m: r'\x{:02x}'.format(ord(m.group(0))),
             s)
-    return '"{}"'.format(s)
+    return '"' + s + '"'
 
 
 def dump_value(key, value, f, indent=0):
