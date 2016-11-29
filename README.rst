@@ -9,8 +9,8 @@ the `json`_ module: the four main methods are ``load()``, ``loads()``,
 
 Example usage::
 
-    import libconf
-    >>> with open('example.cfg') as f:
+    import io, libconf
+    >>> with io.open('example.cfg') as f:
     ...     config = libconf.load(f)
     >>> config
     {'capabilities': {'can-do-arrays': [3, 'yes', True],
