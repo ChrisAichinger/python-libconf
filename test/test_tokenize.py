@@ -76,10 +76,11 @@ def test_string():
 def test_name():
     tokenizer = libconf.Tokenizer("<memory>")
 
-    tokens = list(tokenizer.tokenize("ident IdenT I I32A"))
+    tokens = list(tokenizer.tokenize("ident IdenT I I32A true_value falseVal"))
 
-    assert [t.type for t in tokens] == ['name'] * 4
-    assert [t.text for t in tokens] == ['ident', 'IdenT', 'I', 'I32A']
+    assert [t.type for t in tokens] == ['name'] * 6
+    assert [t.text for t in tokens] == ['ident', 'IdenT', 'I', 'I32A',
+                                        'true_value', 'falseVal']
 
 def test_special():
     tokenizer = libconf.Tokenizer("<memory>")

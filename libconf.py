@@ -141,7 +141,8 @@ class Tokenizer:
         (IntToken,  'hex',       r'0[Xx][0-9A-Fa-f]+'),
         (IntToken,  'integer64', r'[-+]?[0-9]+L(L)?'),
         (IntToken,  'integer',   r'[-+]?[0-9]+'),
-        (BoolToken, 'boolean',   r'([Tt][Rr][Uu][Ee])|([Ff][Aa][Ll][Ss][Ee])'),
+        (BoolToken, 'boolean',   r'([Tt][Rr][Uu][Ee]\b)|'
+                                 r'([Ff][Aa][Ll][Ss][Ee]\b)'),
         (StrToken,  'string',    r'"([^"\\]|\\.)*"'),
         (Token,     'name',      r'[A-Za-z\*][-A-Za-z0-9_\*]*'),
         (Token,     '}',         r'\}'),
