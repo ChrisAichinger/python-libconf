@@ -135,14 +135,13 @@ class Tokenizer:
     '''
 
     token_map = [
-        (FltToken,  'float',     r'([-+]?([0-9]+)?\.[0-9]*([eE][-+]?[0-9]+)?)|'
-                                 r'([-+]?([0-9]+)(\.[0-9]*)?[eE][-+]?[0-9]+)'),
+        (FltToken,  'float',     r'([-+]?(\d+)?\.\d*([eE][-+]?\d+)?)|'
+                                 r'([-+]?(\d+)(\.\d*)?[eE][-+]?\d+)'),
         (IntToken,  'hex64',     r'0[Xx][0-9A-Fa-f]+(L(L)?)'),
         (IntToken,  'hex',       r'0[Xx][0-9A-Fa-f]+'),
         (IntToken,  'integer64', r'[-+]?[0-9]+L(L)?'),
         (IntToken,  'integer',   r'[-+]?[0-9]+'),
-        (BoolToken, 'boolean',   r'([Tt][Rr][Uu][Ee]\b)|'
-                                 r'([Ff][Aa][Ll][Ss][Ee]\b)'),
+        (BoolToken, 'boolean',   r'(?i)(true|false)\b'),
         (StrToken,  'string',    r'"([^"\\]|\\.)*"'),
         (Token,     'name',      r'[A-Za-z\*][-A-Za-z0-9_\*]*'),
         (Token,     '}',         r'\}'),
