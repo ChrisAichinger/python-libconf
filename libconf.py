@@ -36,6 +36,7 @@ ESCAPE_SEQUENCE_RE = re.compile(r'''
     | \\[\\'"abfnrtv]  # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
+SKIP_RE = re.compile(r'\s+|#.*$|//.*$|/\*(.|\n)*?\*/', re.MULTILINE)
 UNPRINTABLE_CHARACTER_RE = re.compile(r'[\x00-\x1F\x7F]')
 
 
@@ -118,6 +119,11 @@ class StrToken(Token):
         self.value = decode_escapes(self.text[1:-1])
 
 
+def compile_regexes(token_map):
+    return [(cls, type, re.compile(regex))
+            for cls, type, regex in token_map]
+
+
 class Tokenizer:
     '''Tokenize an input string
 
@@ -134,7 +140,7 @@ class Tokenizer:
     level (cf. the TokenStream class).
     '''
 
-    token_map = [
+    token_map = compile_regexes([
         (FltToken,  'float',     r'([-+]?(\d+)?\.\d*([eE][-+]?\d+)?)|'
                                  r'([-+]?(\d+)(\.\d*)?[eE][-+]?\d+)'),
         (IntToken,  'hex64',     r'0[Xx][0-9A-Fa-f]+(L(L)?)'),
@@ -154,7 +160,7 @@ class Tokenizer:
         (Token,     ';',         r';'),
         (Token,     '=',         r'='),
         (Token,     ':',         r':'),
-    ]
+    ])
 
     def __init__(self, filename):
         self.filename = filename
@@ -163,8 +169,9 @@ class Tokenizer:
 
     def tokenize(self, string):
         '''Yield tokens from the input string or throw ConfigParseError'''
-        while string:
-            m = re.match(r'\s+|#.*$|//.*$|/\*(.|\n)*?\*/', string, re.M)
+        pos = 0
+        while pos < len(string):
+            m = SKIP_RE.match(string, pos=pos)
             if m:
                 skip_lines = m.group(0).split('\n')
                 if len(skip_lines) > 1:
@@ -173,21 +180,22 @@ class Tokenizer:
                 else:
                     self.column += len(skip_lines[0])
 
-                string = string[m.end():]
+                pos = m.end()
                 continue
 
             for cls, type, regex in self.token_map:
-                m = re.match(regex, string)
+                m = regex.match(string, pos=pos)
                 if m:
                     yield cls(type, m.group(0),
                               self.filename, self.row, self.column)
                     self.column += len(m.group(0))
-                    string = string[m.end():]
+                    pos = m.end()
                     break
             else:
                 raise ConfigParseError(
                     "Couldn't load config in %r row %d, column %d: %r" %
-                    (self.filename, self.row, self.column, string[:20]))
+                    (self.filename, self.row, self.column,
+                     string[pos:pos+20]))
 
 
 class TokenStream:
@@ -365,8 +373,9 @@ class Parser:
         return self._parse_any_of(acceptable)
 
     def scalar_value(self):
-        acceptable = [self.boolean, self.integer, self.integer64, self.hex,
-                      self.hex64, self.float, self.string]
+        # This list is ordered so that more common tokens are checked first.
+        acceptable = [self.string, self.boolean, self.integer, self.float,
+                      self.hex, self.integer64, self.hex64]
         return self._parse_any_of(acceptable)
 
     def value_list_or_empty(self):
