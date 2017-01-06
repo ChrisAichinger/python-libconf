@@ -72,6 +72,25 @@ fit my requirements. I had a work-related project which is not open source
 python-libconfig. Further, I enjoy writing parsers and this seemed like a nice
 opportunity :-)
 
+Release notes
+-------------
+
+* **1.0.1**, released on 2017-01-06
+
+  - Drastically improve performance when reading larger files
+  - Several smaller improvements and fixes
+
+* **1.0.0**, released on 2016-10-26:
+
+  - Add the ability to write libconf files (``dump()`` and ``dumps()``,
+    thanks clarkli86 and eatsan)
+  - Several smaller improvements and fixes
+
+* **0.9.2**, released on 2016-09-09:
+
+  - Fix compatibility with Python versions older than 2.7.6 (thanks AnandTella)
+
+
 .. _libconfig format: http://www.hyperrealm.com/libconfig/libconfig_manual.html#Configuration-Files
 .. _json: https://docs.python.org/3/library/json.html
 .. _Pylibconfig2: https://github.com/heinzK1X/pylibconfig2
