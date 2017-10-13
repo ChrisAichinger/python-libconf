@@ -597,6 +597,9 @@ def dump_dict(cfg, f, indent=0):
         if not isstr(key):
             raise ConfigSerializeError("Dict keys must be strings: %r" %
                                        (key,))
+        # if an entry has a value of None skip it since it can't be represented
+        if cfg[key] is None:
+            continue
         dump_value(key, cfg[key], f, indent)
         f.write(u';\n')
 
