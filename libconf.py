@@ -59,10 +59,11 @@ class AttrDict(collections.OrderedDict):
     '''
 
     def __getattr__(self, attr):
-        if attr == '_OrderedDict__root':
-            # Work around Python2's OrderedDict weirdness.
-            raise AttributeError("AttrDict has no attribute %r" % attr)
-        return self.__getitem__(attr)
+        # Work around Python2's OrderedDict weirdness.
+        try:
+            return self.__getitem__(attr)
+        except KeyError:
+            raise AttributeError(attr)
 
 
 class ConfigParseError(RuntimeError):
