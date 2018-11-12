@@ -59,10 +59,12 @@ class AttrDict(collections.OrderedDict):
     '''
 
     def __getattr__(self, attr):
-        if attr == '_OrderedDict__root':
-            # Work around Python2's OrderedDict weirdness.
-            raise AttributeError("AttrDict has no attribute %r" % attr)
-        return self.__getitem__(attr)
+        # Take care that getattr() raises AttributeError, not KeyError.
+        # Required e.g. for hasattr(), deepcopy and OrderedDict.
+        try:
+            return self.__getitem__(attr)
+        except KeyError:
+            raise AttributeError("Attribute %r not found" % attr)
 
 
 class ConfigParseError(RuntimeError):
