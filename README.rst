@@ -128,6 +128,15 @@ opportunity :-)
 Release notes
 -------------
 
+* **2.0.0**, released on 2018-11-23
+
+  - Output validation for ``dump()`` and ``dumps()``: raise an exception when
+    dumping data that can not be read by the C libconfig implementation.
+    *This change may raise exceptions on code that worked with <2.0.0!*
+  - Add ``LibconfList``, ``LibconfArray``, ``LibconfInt64`` classes for
+    more fine-grained control of the ``dump()``/``dumps()`` output.
+  - Fix ``deepcopy()`` of ``AttrDict`` classes (thanks AnandTella).
+
 * **1.0.1**, released on 2017-01-06
 
   - Drastically improve performance when reading larger files
