@@ -19,6 +19,8 @@ try:
 
     def isint(i):
         return isinstance(i, (int, long))
+
+    LONGTYPE = long
 except NameError:
 
     def isstr(s):
@@ -26,6 +28,8 @@ except NameError:
 
     def isint(i):
         return isinstance(i, int)
+
+    LONGTYPE = int
 
 # Bounds to determine when an "L" suffix should be used during dump().
 SMALL_INT_MIN = -2**31
@@ -105,6 +109,8 @@ class IntToken(Token):
         self.is_long = self.text.endswith('L')
         self.is_hex = (self.text[1:2].lower() == 'x')
         self.value = int(self.text.rstrip('L'), 0)
+        if self.is_long:
+            self.value = LibconfInt64(self.value)
 
 
 class BoolToken(Token):
@@ -518,9 +524,32 @@ def loads(string, filename=None, includedir=''):
 # dump() logic
 ##############
 
+class LibconfList(tuple):
+    pass
+
+
+class LibconfArray(list):
+    pass
+
+
+class LibconfInt64(LONGTYPE):
+    pass
+
+
+def is_long_int(i):
+    '''Return True if argument should be dumped as int64 type
+
+    Either because the argument is an instance of LibconfInt64, or
+    because it exceeds the 32bit integer value range.
+    '''
+
+    return (isinstance(i, LibconfInt64) or
+            not (SMALL_INT_MIN <= i <= SMALL_INT_MAX))
+
+
 def dump_int(i):
-    '''Stringize ``i``, append 'L' if ``i`` is exceeds the 32-bit int range'''
-    return str(i) + ('' if SMALL_INT_MIN <= i <= SMALL_INT_MAX else 'L')
+    '''Stringize ``i``, append 'L' suffix if necessary'''
+    return str(i) + ('L' if is_long_int(i) else '')
 
 
 def dump_string(s):
@@ -543,6 +572,80 @@ def dump_string(s):
     return '"' + s + '"'
 
 
+def get_dump_type(value):
+    '''Get the libconfig datatype of a value
+
+    Return values: ``'d'`` (dict), ``'l'`` (list), ``'a'`` (array),
+    ``'i'`` (integer), ``'i64'`` (long integer), ``'b'`` (bool),
+    ``'f'`` (float), or ``'s'`` (string).
+
+    Produces the proper type for LibconfList, LibconfArray, LibconfInt64
+    instances.
+    '''
+
+    if isinstance(value, dict):
+        return 'd'
+    if isinstance(value, tuple):
+        return 'l'
+    if isinstance(value, list):
+        return 'a'
+
+    # Test bool before int since isinstance(True, int) == True.
+    if isinstance(value, bool):
+        return 'b'
+    if isint(value):
+        if is_long_int(value):
+            return 'i64'
+        else:
+            return 'i'
+    if isinstance(value, float):
+        return 'f'
+    if isstr(value):
+        return 's'
+
+    return None
+
+
+def get_array_value_dtype(lst):
+    '''Return array value type, raise ConfigSerializeError for invalid arrays
+
+    Libconfig arrays must only contain scalar values and all elements must be
+    of the same libconfig data type. Raises ConfigSerializeError if these
+    invariants are not met.
+
+    Returns the value type of the array. If an array contains both int and
+    long int data types, the return datatype will be ``'i64'``.
+    '''
+
+    array_value_type = None
+    for value in lst:
+        dtype = get_dump_type(value)
+        if dtype not in {'b', 'i', 'i64', 'f', 's'}:
+            raise ConfigSerializeError(
+                "Invalid datatype in array (may only contain scalars):"
+                "%r of type %s" % (value, type(value)))
+
+        if array_value_type is None:
+            array_value_type = dtype
+            continue
+
+        if array_value_type == dtype:
+            continue
+
+        if array_value_type == 'i' and dtype == 'i64':
+            array_value_type = 'i64'
+            continue
+
+        if array_value_type == 'i64' and dtype == 'i':
+            continue
+
+        raise ConfigSerializeError(
+            "Mixed types in array (all elements must have same type):"
+            "%r of type %s" % (value, type(value)))
+
+    return array_value_type
+
+
 def dump_value(key, value, f, indent=0):
     '''Save a value of any libconfig type
 
@@ -560,23 +663,29 @@ def dump_value(key, value, f, indent=0):
         key_prefix = key + ' = '
         key_prefix_nl = key + ' =\n' + spaces
 
-    if isinstance(value, dict):
+    dtype = get_dump_type(value)
+    if dtype == 'd':
         f.write(u'{}{}{{\n'.format(spaces, key_prefix_nl))
         dump_dict(value, f, indent + 4)
         f.write(u'{}}}'.format(spaces))
-    elif isinstance(value, tuple):
+    elif dtype == 'l':
         f.write(u'{}{}(\n'.format(spaces, key_prefix_nl))
         dump_collection(value, f, indent + 4)
         f.write(u'\n{})'.format(spaces))
-    elif isinstance(value, list):
+    elif dtype == 'a':
         f.write(u'{}{}[\n'.format(spaces, key_prefix_nl))
+        value_dtype = get_array_value_dtype(value)
+
+        # If int array contains one or more Int64, promote all values to i64.
+        if value_dtype == 'i64':
+            value = [LibconfInt64(v) for v in value]
         dump_collection(value, f, indent + 4)
         f.write(u'\n{}]'.format(spaces))
-    elif isstr(value):
+    elif dtype == 's':
         f.write(u'{}{}{}'.format(spaces, key_prefix, dump_string(value)))
-    elif isint(value):
+    elif dtype == 'i' or dtype == 'i64':
         f.write(u'{}{}{}'.format(spaces, key_prefix, dump_int(value)))
-    elif isinstance(value, float):
+    elif dtype == 'f' or dtype == 'b':
         f.write(u'{}{}{}'.format(spaces, key_prefix, value))
     else:
         raise ConfigSerializeError("Can not serialize object %r of type %s" %

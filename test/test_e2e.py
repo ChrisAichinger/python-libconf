@@ -32,7 +32,7 @@ def test_example_config():
     assert c.appconfig.list == (3, "chicken", (), dict(group=True))
     assert c.appconfig.sub_group.sub_sub_group.yes == "yes"
     assert c.appconfig.sub_group.sub_sub_group['include-works'] == True
-    assert c.appconfig.sub_group.arr == [1, "2", True]
+    assert c.appconfig.sub_group.arr == [1, 2]
     assert c.appconfig.sub_group.str == "Strings are joined despite comments";
 
 def test_string_merging():
@@ -121,3 +121,8 @@ def test_roundtrip_preserves_config_entry_order():
     reloaded = libconf.loads(dumped)
 
     assert ''.join(reloaded.keys()) == 'libconf'
+
+def test_roundtrip_of_int64_values():
+    s = u'a=2L;'
+    s2 = libconf.dumps(libconf.loads(s))
+    assert s == s2.replace(' ', '').replace('\n', '')

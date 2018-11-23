@@ -61,9 +61,9 @@ def test_dump_dict_indentation_dicts_with_extra_indent():
     assert c_dumped == '    a =\n    {\n        b = 3;\n    };\n'
 
 def test_dump_dict_indentation_dicts_within_lists():
-    c = {'a': [{'b': 3}]}
+    c = {'a': ({'b': 3},)}
     c_dumped = dump_dict(c)
-    assert c_dumped == 'a =\n[\n    {\n        b = 3;\n    }\n];\n'
+    assert c_dumped == 'a =\n(\n    {\n        b = 3;\n    }\n);\n'
 
 def test_dump_string_escapes_backslashes():
     s = r'abc \ def \ hij'
@@ -121,6 +121,10 @@ def test_dump_raises_on_list_input():
     with pytest.raises(libconf.ConfigSerializeError):
         libconf.dumps([])
 
+def test_none_dict_value_raises():
+    with pytest.raises(libconf.ConfigSerializeError):
+        libconf.dumps({'test': None})
+
 def test_none_dict_key_raises():
     with pytest.raises(libconf.ConfigSerializeError):
         libconf.dumps({None: 0})
@@ -132,3 +136,43 @@ def test_integer_dict_key_raises():
 def test_invalid_value_raises():
     with pytest.raises(libconf.ConfigSerializeError):
         libconf.dumps({'a': object()})
+
+def test_array_with_composite_type_dict_raises():
+    with pytest.raises(libconf.ConfigSerializeError):
+        libconf.dumps({'a': [{}]})
+
+def test_array_with_composite_type_list_raises():
+    with pytest.raises(libconf.ConfigSerializeError):
+        libconf.dumps({'a': [()]})
+
+def test_array_with_composite_type_array_raises():
+    with pytest.raises(libconf.ConfigSerializeError):
+        libconf.dumps({'a': [[]]})
+
+def test_array_with_mixed_types_intstr_raises():
+    with pytest.raises(libconf.ConfigSerializeError):
+        libconf.dumps({'a': [1, "str"]})
+
+def test_array_with_mixed_types_intbool_raises():
+    with pytest.raises(libconf.ConfigSerializeError):
+        libconf.dumps({'a': [1, True]})
+
+def test_array_with_intint64():
+    c = {'a': [2, 2**65]}
+    c_dumped = dump_dict(c).replace(" ", "").replace("\n", "")
+    assert c_dumped == 'a=[2L,36893488147419103232L];'
+
+def test_LibconfArray_produces_array():
+    c = {'a': libconf.LibconfArray([1,2])}
+    c_dumped = dump_dict(c).replace(" ", "").replace("\n", "")
+    assert c_dumped == 'a=[1,2];'
+
+def test_LibconfList_produces_list():
+    c = {'a': libconf.LibconfList([1,2])}
+    c_dumped = dump_dict(c).replace(" ", "").replace("\n", "")
+    assert c_dumped == 'a=(1,2);'
+
+def test_LibconfInt64_produces_L_suffix():
+    c = {'a': libconf.LibconfInt64(2)}
+    c_dumped = dump_dict(c).replace(" ", "").replace("\n", "")
+    assert c_dumped == 'a=2L;'

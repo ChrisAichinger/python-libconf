@@ -54,6 +54,59 @@ In ``dump()`` and ``dumps()``, unprintable characters below U+0080 are escaped
 as ``\n``, ``\r``, ``\t``, ``\f``, or ``\xNN`` sequences. Characters U+0080
 and above are passed through as-is.
 
+
+Writing libconfig files
+-----------------------
+
+Reading libconfig files is easy. Writing is made harder by two factors:
+
+* libconfig's distinction between `int and int64`_: ``2`` vs. ``2L``
+* libconfig's distinction between `lists`_ and `arrays`_, and
+  the limitations on arrays
+
+The first point concerns writing Python ``int`` values. Libconf dumps values
+that fit within the C/C++ 32bit ``int`` range without an "L" suffix. For larger
+values, an "L" suffix is automatically added. To force the addition of an "L"
+suffix even for numbers within the 32 bit integer range, wrap the integer in a
+``LibconfInt64`` class.
+
+Examples::
+
+    dumps({'value': 2})                # Returns "value = 2;"
+    dumps({'value': 2**32})            # Returns "value = 4294967296L;"
+    dumps({'value': LibconfInt64(2)})  # Explicit int64, returns "value = 2L;"
+
+The second complication arises from distinction between `lists`_ and `arrays`_
+in the libconfig language. Lists are enclosed by ``()`` parenthesis, and can
+contain arbitrary values within them. Arrays are enclosed by ``[]`` brackets,
+and have significant limitations: all values must be scalar (int, float, bool,
+string) and must be of the same type.
+
+Libconf uses the following convention:
+
+* it maps libconfig ``()``-lists to Python tuples, which also use the ``()``
+  syntax.
+* it maps libconfig ``[]``-arrays to Python lists, which also use the ``[]``
+  syntax.
+
+This provides nice symmetry between the two languages, but has the drawback
+that dumping Python lists inherits the limitations of libconfig's arrays.
+To explicitly control whether lists or arrays are dumped, wrap the Python
+list/tuple in a ``LibconfList`` or ``LibconfArray``.
+
+Examples::
+
+    # Libconfig lists (=Python tuples) can contain arbitrary complex types:
+    dumps({'libconf_list': (1, True, {})})
+
+    # Libconfig arrays (=Python lists) must contain scalars of the same type:
+    dumps({'libconf_array': [1, 2, 3]})
+
+    # Equivalent, but more explit by using LibconfList/LibconfArray:
+    dumps({'libconf_list': LibconfList([1, True, {}])})
+    dumps({'libconf_array': LibconfArray([1, 2, 3])})
+
+
 Comparison to other Python libconfig libraries
 ----------------------------------------------
 
@@ -93,5 +146,8 @@ Release notes
 
 .. _libconfig format: http://www.hyperrealm.com/libconfig/libconfig_manual.html#Configuration-Files
 .. _json: https://docs.python.org/3/library/json.html
+.. _lists: https://hyperrealm.github.io/libconfig/libconfig_manual.html#Lists
+.. _arrays: https://hyperrealm.github.io/libconfig/libconfig_manual.html#Arrays
+.. _int and int64: https://hyperrealm.github.io/libconfig/libconfig_manual.html#g_t64_002dbit-Integer-Values
 .. _Pylibconfig2: https://github.com/heinzK1X/pylibconfig2
 .. _Python-libconfig: https://github.com/cnangel/python-libconfig
