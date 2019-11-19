@@ -456,10 +456,9 @@ class Parser:
             if v is None:
                 if first:
                     return []
-                else:
-                    self.tokens.error("expected value after ','")
+            else:
+                values.append(v)
 
-            values.append(v)
             if not self.tokens.accept(','):
                 return values
 
