@@ -128,6 +128,12 @@ opportunity :-)
 Release notes
 -------------
 
+* **2.0.1**, released on 2019-11-21
+
+  - Allow trailing commas in lists and arrays for improved compatibility
+    with the libconfig C implementation. Thanks to nibua-r for reporting
+    this issue.
+
 * **2.0.0**, released on 2018-11-23
 
   - Output validation for ``dump()`` and ``dumps()``: raise an exception when
