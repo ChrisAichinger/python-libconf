@@ -450,20 +450,14 @@ class Parser:
 
     def _comma_separated_list_or_empty(self, nonterminal):
         values = []
-        first = True
         while True:
             v = nonterminal()
             if v is None:
-                if first:
-                    return []
-                else:
-                    self.tokens.error("expected value after ','")
-
+                return values
             values.append(v)
+
             if not self.tokens.accept(','):
                 return values
-
-            first = False
 
     def _enclosed_block(self, start, nonterminal, end):
         if not self.tokens.accept(start):

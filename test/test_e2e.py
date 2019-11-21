@@ -64,6 +64,13 @@ def test_load_of_BytesIO_throws():
 
     assert 'libconf.load' in str(excinfo.value)
 
+def test_lists_support_trailing_comma():
+    config = libconf.loads(u'''a: (1, 2, 3,);''')
+    assert config.a == (1, 2, 3)
+
+def test_arrays_support_trailing_comma():
+    config = libconf.loads(u'''a: [1, 2, 3,];''')
+    assert config.a == [1, 2, 3]
 
 # Tests for dump() and dumps()
 ##############################
